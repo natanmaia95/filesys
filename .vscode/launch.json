@@ -1,0 +1,44 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name":"run create vdrive.img",
+            "type":"cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/ds_filesys",
+            "args": ["create", "vdrive.img"],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "MIMode": "gdb",
+            "externalConsole": false
+          },
+          {
+            "name":"run status vdrive.img",
+            "type":"cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/ds_filesys",
+            "args": ["status", "vdrive.img"],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "MIMode": "gdb",
+            "externalConsole": false
+          },
+          {
+            "name":"run createfile vdrive.img test1 16",
+            "type":"cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/ds_filesys",
+            "args": ["status", "vdrive.img", "test1", "16"],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "MIMode": "gdb",
+            "externalConsole": false
+          }
+    ]
+}

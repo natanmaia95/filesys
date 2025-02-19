@@ -1,0 +1,10 @@
+dd if=/dev/zero of=vdrive.img bs=1M count=100
+//faz a criação de um arquivo do tamanho que quiser, a partir de outro arquivo (aqui, um vazio). input file e output file. block size e block count.
+
+//criar um sistema de arquivos ext2
+//make file system
+mkfs.ext2 vdrive.img
+
+//montar o disco utilizando o dispositivo /loop que emula discos virtuais.
+> ver qual o ultimo loop criado usando "ls /dev/loop*" e cria o prox
+sudo losetup /dev/loop8 vdrive.img
