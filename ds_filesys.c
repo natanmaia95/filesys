@@ -2,13 +2,11 @@
 
 OK formatar 
 OK criar arquivo tamanho
-apagar
+OK apagar
 OK listar
 ler arquivo inicio fim
 ordenar arquivo (usar hugepage)
 concatenar arquivo1 arquivo2 (sem usar hugepage)
-
-
 
 */
 
@@ -227,12 +225,13 @@ int remove_dir_entry(FILE *fs, uint32_t dir_inode_num, const char *name) {
     // Find the directory entry
     for (int i = 0; i < BLOCK_SIZE / sizeof(dir_entry_t); i++) {
         if (dir_entries[i].inode_num != 0 && strcmp(dir_entries[i].name, name) == 0) {
+            uint32_t found_inode_num = dir_entries[i].inode_num;
             dir_entries[i].inode_num = 0;  // Mark the entry as free
             memset(dir_entries[i].name, 0, MAX_NAME_LEN);
 
             // Write the updated directory block back to disk
             write_block(fs, dir_inode.direct[0], dir_entries);
-            return dir_entries[i].inode_num; // Return the inode number of the deleted file
+            return found_inode_num; // Return the inode number of the deleted file
         }
     }
 
@@ -515,8 +514,8 @@ int command_deleteFile(const char* disk_image, const char* name) {
     free_inode_blocks(fs, &inode);       //free blocks from block bitmap
 
     //write empty data in its place so no incorrect read can be made.
-    inode_t empty_inode = {0};
-    write_inode(fs, inode_num, &empty_inode);
+    // inode_t empty_inode = {0};
+    // write_inode(fs, inode_num, &empty_inode);
 
     printf("File '%s' deleted successfully.\n", name);
 
@@ -540,6 +539,8 @@ int main(int argc, char *argv[]) {
     // argv[1] = "list";
 
     // argv[1] = "printfile"; argv[3] = "test5";
+
+    // argv[1] = "deletefile"; argv[3] = "test12";
     
     // argv[1] = "createfile"; argv[3] = "test5"; argv[4] = "16";
 
