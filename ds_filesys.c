@@ -530,7 +530,6 @@ int main(int argc, char *argv[]) {
 
     //hard override
     // argc = 6;
-    // argv[2] = "vdrive.img";
     
     // argv[1] = "create";
     
@@ -538,25 +537,28 @@ int main(int argc, char *argv[]) {
 
     // argv[1] = "list";
 
-    // argv[1] = "printfile"; argv[3] = "test5";
+    // argv[1] = "printfile"; argv[2] = "test5";
 
-    // argv[1] = "deletefile"; argv[3] = "test12";
+    // argv[1] = "deletefile"; argv[2] = "test12";
     
-    // argv[1] = "createfile"; argv[3] = "test5"; argv[4] = "16";
+    // argv[1] = "createfile"; argv[2] = "test5"; argv[3] = "16";
 
-    if (argc < 3) {
-        printf("Usage: %s <command> <disk_image> [args...]\n", argv[0]);
+
+
+    if (argc < 2) {
+        printf("Usage: %s <command> [args...]\n", argv[0]);
         printf("Commands:\n");
-        printf("\n  format <disk_image>\n    ↳ Create and format a new disk image\n");
-        printf("\n  status <disk_image>\n    ↳ Prints superblock information [TODO]\n"); //TODO: make this command
-        printf("\n  createfile <disk_image> <filename> <size>\n    ↳ Create a file with random data\n");
-        printf("\n  printfile <disk_image> <filename>\n    ↳ Prints file contents as ints to console\n");
-        printf("\n  list <disk_image>\n    ↳ Lists all file names and inodes\n");
+        printf("\n  format\n    ↳ Create and format a new disk image\n");
+        printf("\n  status\n    ↳ Prints superblock information\n"); //TODO: make this command
+        printf("\n  createfile <filename> <size>\n    ↳ Create a file with random data\n");
+        printf("\n  printfile <filename>\n    ↳ Prints file contents as ints to console\n");
+        printf("\n  deletefile <filename>\n    ↳ Deletes file from the directory structure\n");
+        printf("\n  list\n    ↳ Lists all file names and inodes\n");
         return 1;
     }
 
     const char *command = argv[1];
-    const char *disk_image = argv[2];
+    const char *disk_image = "vdrive.img";
 
     if (strcmp(command, "format") == 0) {
         return command_formatDrive(disk_image);
@@ -568,30 +570,30 @@ int main(int argc, char *argv[]) {
     } 
 
     else if (strcmp(command, "createfile") == 0) {
-        if (argc < 5) {
-            printf("Usage: %s createfile <disk_image> <filename> <size>\n", argv[0]);
+        if (argc < 4) {
+            printf("Usage: %s createfile <filename> <size_bytes>\n", argv[0]);
             return 1;
         }
-        const char *filename = argv[3];
-        size_t size = atoi(argv[4]);
+        const char *filename = argv[2];
+        size_t size = atoi(argv[3]);
         return command_createFile(disk_image, filename, size);
     } 
 
     else if (strcmp(command, "printfile") == 0) {
-        if (argc < 4) {
-            printf("Usage: %s createfile <disk_image> <filename>\n", argv[0]);
+        if (argc < 3) {
+            printf("Usage: %s printfile <filename>\n", argv[0]);
             return 1;
         }
-        const char *filename = argv[3];
+        const char *filename = argv[2];
         return print_file(disk_image, filename, 0);
     }
 
     else if (strcmp(command, "deletefile") == 0) {
-        if (argc < 4) {
-            printf("Usage: %s deletefile <disk_image> <filename>\n", argv[0]);
+        if (argc < 3) {
+            printf("Usage: %s deletefile <filename>\n", argv[0]);
             return 1;
         }
-        const char *filename = argv[3];
+        const char *filename = argv[2];
         return command_deleteFile(disk_image, filename);
     }
 
