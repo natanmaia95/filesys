@@ -2,6 +2,7 @@
     "files.associations": {
         "unistd.h": "c",
         "fcntl.h": "c",
-        "time.h": "c"
+        "time.h": "c",
+        "typeinfo": "c"
     }
 }

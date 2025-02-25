@@ -288,6 +288,25 @@ void free_inode_blocks(FILE* fs, inode_t* inode) {
 }
 
 
+//returns inode number if found, -1 if not found
+int find_file(FILE *fs, superblock_t* sb, int dir_inode_num, const char* filename) {
+    inode_t dir_inode;
+    read_block(fs, sb->inode_table_start + dir_inode_num, &dir_inode);
+    dir_entry_t dir_entries[BLOCK_SIZE / sizeof(dir_entry_t)];
+    read_block(fs, dir_inode.direct[0], dir_entries);
+
+    //find the inode num attached to the queried name
+    int inode_num = -1;
+    for (unsigned int i = 0; i < BLOCK_SIZE / sizeof(dir_entry_t); i++) {
+        if (strcmp(filename, dir_entries[i].name) == 0) {
+            inode_num = dir_entries[i].inode_num;
+            break;
+        }
+    }
+    if (inode_num == -1) printf("Couldn't find file '%s' \n", filename);
+    return inode_num;
+}
+
 
 int create_file(FILE *fs, const char *name, size_t size) {
     superblock_t sb;
@@ -364,6 +383,7 @@ int create_file(FILE *fs, const char *name, size_t size) {
         return -1;
     }
 
+    fclose(fs);
     return 0;
 }
 
@@ -381,15 +401,8 @@ int print_file(const char* disk_image, const char* name, int dir_inode_num, size
     read_block(fs, dir_inode.direct[0], dir_entries);
   
     //find the inode num attached to the queried name
-    int inode_num = -1;
-    for (unsigned int i = 0; i < BLOCK_SIZE / sizeof(dir_entry_t); i++) {
-        if (strcmp(name, dir_entries[i].name) == 0) {
-            inode_num = dir_entries[i].inode_num;
-            break;
-        }
-    }
+    int inode_num = find_file(fs, &sb, 0, name);
     if (inode_num == -1) {
-        printf("Couldn't find file '%s' \n", name);
         fclose(fs);
         return -1;   
     }
@@ -427,8 +440,6 @@ int print_file(const char* disk_image, const char* name, int dir_inode_num, size
     fclose(fs);
     return 0;
 }
-
-
 
 
 int command_formatDrive(const char* disk_image) {
@@ -533,12 +544,102 @@ int command_deleteFile(const char* disk_image, const char* name) {
 }
 
 
+int command_joinFiles(const char* disk_image, const char* name1, const char* name2, const char* final_name) {
+    int ints_per_block = BLOCK_SIZE / sizeof(int);
+    FILE *fs = fopen(disk_image, "rb+");
+    superblock_t sb;
+    read_block(fs, 0, &sb);
+
+    int file1_inode_num = find_file(fs, &sb, 0, name1);
+    int file2_inode_num = find_file(fs, &sb, 0, name2);
+    if (file1_inode_num == -1 || file2_inode_num == -1) {
+        fclose(fs);
+        return -1;
+    }
+
+    inode_t file1_inode;
+    read_inode(fs, file1_inode_num, &file1_inode);
+    inode_t file2_inode;
+    read_inode(fs, file2_inode_num, &file2_inode);
+
+    uint32_t final_size = file1_inode.size + file2_inode.size;
+    int final_inode_num = create_file(fs, final_name, final_size); //create new file with random numbers
+    if (final_inode_num == -1) { //if file name exists
+        fclose(fs);
+        return -1;
+    }
+
+    inode_t final_inode;
+    read_inode(fs, final_inode_num, &final_inode);
+    //fill new file with the contents of the first ones
+    
+    // Write file1 data into final
+    uint32_t ints_written = 0;
+    for (int b = 0; b < file1_inode.blocks; b++) {
+        uint8_t final_data[BLOCK_SIZE];
+        uint8_t file1_data[BLOCK_SIZE];
+        read_block(fs, file1_inode.direct[b], &file1_data);
+
+        int* final_data_ints = (int*) final_data; // Treat the block as an array of 32-bit integers
+        int* file1_data_ints = (int*) file1_data;
+
+        //TODO: fill the block with integers from file1
+        for (int j = 0; j < ints_per_block; j++) {
+            if (ints_written >= file1_inode.size) break;
+            final_data_ints[j] = file1_data_ints[j];
+            ints_written += 1;
+        }
+
+        //writes that block to disk
+        write_block(fs, final_inode.direct[b], final_data);
+    }
+    uint32_t offset = ints_written % BLOCK_SIZE; // while (ints_written > BLOCK_SIZE) ints_written -= BLOCK_SIZE;
+    // ints_written = 0;
+    //write file2 data into final
+    for (int b = file1_inode.blocks-1; b < final_inode.blocks; b++) {
+        uint8_t final_data[BLOCK_SIZE];
+        read_block(fs, final_inode.direct[b], &final_data);
+        uint8_t file2_data[BLOCK_SIZE];
+        read_block(fs, file2_inode.direct[b], &file2_data);
+
+        int* final_data_ints = (int*) final_data;
+        int* file2_data_ints = (int*) file2_data;
+
+        //TODO: fill the block with integers from file1
+        int wrapAround = 0;
+        for (int j = 0; j < ints_per_block; j++) {
+            if (ints_written >= final_inode.size) break;
+
+            if (wrapAround == 0) {
+                if (j + offset >= BLOCK_SIZE) {
+                    wrapAround = 1;
+                    //save current progress on current final block and move to the next
+                    write_block(fs, final_inode.direct[b + 0], final_data);
+                    //load new block from final to make progress on
+                    read_block(fs, final_inode.direct[b + 1], final_data);
+                }
+            }
+
+            final_data_ints[j + offset - wrapAround*BLOCK_SIZE] = file2_data_ints[j];
+            ints_written += 1;
+        }
+
+        //writes that block to disk
+        write_block(fs, final_inode.direct[b + wrapAround], final_data);
+    }
+
+    //TODO: delete old files
+    printf("Finished joining files into '%s'.\n", final_name);
+    return 0;
+}
+
+
 
 // Main function
 int main(int argc, char *argv[]) {
 
     //hard override
-    // argc = 6;
+    argc = 6;
     
     // argv[1] = "create";
     
@@ -552,6 +653,8 @@ int main(int argc, char *argv[]) {
     
     // argv[1] = "createfile"; argv[2] = "test5"; argv[3] = "16";
 
+    argv[1] = "createfile"; argv[2] = "test5"; argv[3] = "16";
+
 
 
     if (argc < 2) {
@@ -559,9 +662,10 @@ int main(int argc, char *argv[]) {
         printf("Commands:\n");
         printf("\n  format\n    ↳ Create and format a new disk image named 'vdrive.img'\n");
         printf("\n  status\n    ↳ Prints superblock information\n");
-        printf("\n  createfile <filename> <size>\n    ↳ Create a file with random data\n");
+        printf("\n  createfile <filename> <size>\n    ↳ Create a file with random data\n"); //TODO: set seed to system time
         printf("\n  printfile <filename> <opt:start_byte> <opt:end_byte>\n    ↳ Prints file contents as ints to console\n");
         printf("\n  deletefile <filename>\n    ↳ Deletes file from the directory structure\n");
+        printf("\n  joinfiles <file1> <file2> <output_file>\n    ↳ Joins the contents of two files into a new third file\n");
         printf("\n  list\n    ↳ Lists all file names and inodes\n");
         return 1;
     }
@@ -611,6 +715,17 @@ int main(int argc, char *argv[]) {
         }
         const char *filename = argv[2];
         return command_deleteFile(disk_image, filename);
+    }
+
+    else if (strcmp(command, "joinfiles") == 0) {
+        if (argc < 5) {
+            printf("Usage: %s joinfiles <file1> <file2> <output_file>\n", argv[0]);
+            return 1;
+        }
+        const char *file1 = argv[2];
+        const char *file2 = argv[3];
+        const char *file3 = argv[4];
+        return command_joinFiles(disk_image, file1, file2, file3);
     }
 
     else if (strcmp(command, "list") == 0) {
