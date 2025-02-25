@@ -554,7 +554,7 @@ int command_joinFiles(const char* disk_image, const char* name1, const char* nam
     int file2_inode_num = find_file(fs, &sb, 0, name2);
     if (file1_inode_num == -1 || file2_inode_num == -1) {
         fclose(fs);
-        return -1;
+        return 1;
     }
 
     inode_t file1_inode;
@@ -563,11 +563,13 @@ int command_joinFiles(const char* disk_image, const char* name1, const char* nam
     read_inode(fs, file2_inode_num, &file2_inode);
 
     uint32_t final_size = file1_inode.size + file2_inode.size;
-    int final_inode_num = create_file(fs, final_name, final_size); //create new file with random numbers
-    if (final_inode_num == -1) { //if file name exists
+    if (create_file(fs, final_name, final_size) != 0) { //create new file with random numbers
         fclose(fs);
-        return -1;
-    }
+        return 1;
+    }; 
+    //create_file closes the file so we need to open it again
+    fs = fopen(disk_image, "rb+");
+    int final_inode_num = find_file(fs, &sb, 0, final_name);
 
     inode_t final_inode;
     read_inode(fs, final_inode_num, &final_inode);
@@ -653,7 +655,7 @@ int main(int argc, char *argv[]) {
     
     // argv[1] = "createfile"; argv[2] = "test5"; argv[3] = "16";
 
-    argv[1] = "createfile"; argv[2] = "test5"; argv[3] = "16";
+    argv[1] = "joinfiles"; argv[2] = "test2"; argv[3] = "test3"; argv[4] = "test5";
 
 
 
