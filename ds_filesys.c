@@ -369,7 +369,7 @@ int create_file(FILE *fs, const char *name, size_t size) {
 
 
 
-int print_file(const char* disk_image, const char* name, int dir_inode_num) {
+int print_file(const char* disk_image, const char* name, int dir_inode_num, size_t start, size_t end) {
     FILE *fs = fopen(disk_image, "rb+");
 
     superblock_t sb;
@@ -399,8 +399,13 @@ int print_file(const char* disk_image, const char* name, int dir_inode_num) {
     read_inode(fs, inode_num, &inode);
 
     // Read the file's data blocks
+    if (end == -1 || end > inode.size) end = inode.size;
+    if (start < 0 || start > inode.size) start = inode.size;
     uint32_t ints_read = 0;
+    uint32_t ints_read_this_block = 0;
     for (unsigned int i = 0; i < inode.blocks; i++) {
+        if (ints_read >= end) break; //custom end from command
+        
         uint8_t data[BLOCK_SIZE];
         read_block(fs, inode.direct[i], data);
 
@@ -408,8 +413,12 @@ int print_file(const char* disk_image, const char* name, int dir_inode_num) {
         int ints_per_block = BLOCK_SIZE / sizeof(int);
 
         for (int j = 0; j < ints_per_block; j++) {
-            if (ints_read >= inode.size) break;
-            printf("%d ", int_data[j]);
+            if (ints_read >= end) break; //custom end from command
+            if (ints_read >= inode.size) break; //end on reading inode size
+
+            if (ints_read >= start) {
+                printf("%d ", int_data[j]);
+            }
             ints_read += 1;
         }
         printf("\n");
@@ -548,10 +557,10 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage: %s <command> [args...]\n", argv[0]);
         printf("Commands:\n");
-        printf("\n  format\n    ↳ Create and format a new disk image\n");
-        printf("\n  status\n    ↳ Prints superblock information\n"); //TODO: make this command
+        printf("\n  format\n    ↳ Create and format a new disk image named 'vdrive.img'\n");
+        printf("\n  status\n    ↳ Prints superblock information\n");
         printf("\n  createfile <filename> <size>\n    ↳ Create a file with random data\n");
-        printf("\n  printfile <filename>\n    ↳ Prints file contents as ints to console\n");
+        printf("\n  printfile <filename> <opt:start_byte> <opt:end_byte>\n    ↳ Prints file contents as ints to console\n");
         printf("\n  deletefile <filename>\n    ↳ Deletes file from the directory structure\n");
         printf("\n  list\n    ↳ Lists all file names and inodes\n");
         return 1;
@@ -585,7 +594,14 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         const char *filename = argv[2];
-        return print_file(disk_image, filename, 0);
+
+        size_t start = 0;
+        if (argc >= 4) start = atoi(argv[3]); 
+        size_t end = -1;
+        if (argc >= 5) end = atoi(argv[4]); 
+        
+        // return print_file(disk_image, filename, 0);
+        return print_file(disk_image, filename, 0, start, end);
     }
 
     else if (strcmp(command, "deletefile") == 0) {
