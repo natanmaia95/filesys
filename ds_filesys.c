@@ -6,7 +6,7 @@ OK apagar
 OK listar
 ler arquivo inicio fim
 ordenar arquivo (usar hugepage)
-concatenar arquivo1 arquivo2 (sem usar hugepage)
+OK concatenar arquivo1 arquivo2 (sem usar hugepage)
 
 */
 
@@ -649,13 +649,13 @@ int main(int argc, char *argv[]) {
 
     // argv[1] = "list";
 
-    // argv[1] = "printfile"; argv[2] = "test5";
+    // argv[1] = "print"; argv[2] = "test5";
 
-    // argv[1] = "deletefile"; argv[2] = "test12";
+    // argv[1] = "delete"; argv[2] = "test12";
     
-    // argv[1] = "createfile"; argv[2] = "test5"; argv[3] = "16";
+    // argv[1] = "create"; argv[2] = "test5"; argv[3] = "16";
 
-    argv[1] = "joinfiles"; argv[2] = "test2"; argv[3] = "test3"; argv[4] = "test5";
+    argv[1] = "concat"; argv[2] = "test2"; argv[3] = "test3"; argv[4] = "test5";
 
 
 
@@ -664,10 +664,10 @@ int main(int argc, char *argv[]) {
         printf("Commands:\n");
         printf("\n  format\n    ↳ Create and format a new disk image named 'vdrive.img'\n");
         printf("\n  status\n    ↳ Prints superblock information\n");
-        printf("\n  createfile <filename> <size>\n    ↳ Create a file with random data\n"); //TODO: set seed to system time
-        printf("\n  printfile <filename> <opt:start_byte> <opt:end_byte>\n    ↳ Prints file contents as ints to console\n");
-        printf("\n  deletefile <filename>\n    ↳ Deletes file from the directory structure\n");
-        printf("\n  joinfiles <file1> <file2> <output_file>\n    ↳ Joins the contents of two files into a new third file\n");
+        printf("\n  create <filename> <size>\n    ↳ Create a file with random data\n"); //TODO: set seed to system time
+        printf("\n  print <filename> <opt:start_byte> <opt:end_byte>\n    ↳ Prints file contents as ints to console\n");
+        printf("\n  delete <filename>\n    ↳ Deletes file from the directory structure\n");
+        printf("\n  concat <file1> <file2> <output_file>\n    ↳ Joins the contents of two files into a new third file\n");
         printf("\n  list\n    ↳ Lists all file names and inodes\n");
         return 1;
     }
@@ -684,9 +684,9 @@ int main(int argc, char *argv[]) {
         return -1;
     } 
 
-    else if (strcmp(command, "createfile") == 0) {
+    else if (strcmp(command, "create") == 0) {
         if (argc < 4) {
-            printf("Usage: %s createfile <filename> <size_bytes>\n", argv[0]);
+            printf("Usage: %s create <filename> <size_bytes>\n", argv[0]);
             return 1;
         }
         const char *filename = argv[2];
@@ -694,9 +694,9 @@ int main(int argc, char *argv[]) {
         return command_createFile(disk_image, filename, size);
     } 
 
-    else if (strcmp(command, "printfile") == 0) {
+    else if (strcmp(command, "print") == 0) {
         if (argc < 3) {
-            printf("Usage: %s printfile <filename>\n", argv[0]);
+            printf("Usage: %s print <filename>\n", argv[0]);
             return 1;
         }
         const char *filename = argv[2];
@@ -710,18 +710,18 @@ int main(int argc, char *argv[]) {
         return print_file(disk_image, filename, 0, start, end);
     }
 
-    else if (strcmp(command, "deletefile") == 0) {
+    else if (strcmp(command, "delete") == 0) {
         if (argc < 3) {
-            printf("Usage: %s deletefile <filename>\n", argv[0]);
+            printf("Usage: %s delete <filename>\n", argv[0]);
             return 1;
         }
         const char *filename = argv[2];
         return command_deleteFile(disk_image, filename);
     }
 
-    else if (strcmp(command, "joinfiles") == 0) {
+    else if (strcmp(command, "concat") == 0) {
         if (argc < 5) {
-            printf("Usage: %s joinfiles <file1> <file2> <output_file>\n", argv[0]);
+            printf("Usage: %s concat <file1> <file2> <output_file>\n", argv[0]);
             return 1;
         }
         const char *file1 = argv[2];
