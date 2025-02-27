@@ -654,9 +654,11 @@ int command_joinFiles(const char* disk_image, const char* name1, const char* nam
 
 // Main function
 int main(int argc, char *argv[]) {
+    srand(time(NULL));  // Initialize seed
 
+    
     //hard override
-    argc = 6;
+    // argc = 6;
     
     // argv[1] = "create";
     
